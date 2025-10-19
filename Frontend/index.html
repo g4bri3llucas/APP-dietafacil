@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dieta Fácil - Sua Dieta Personalizada</title>
+    <link rel="stylesheet" href="styles/style.css">
+</head>
+<body>
+    <!-- TELA DE LOGIN -->
+    <div id="loginScreen" class="screen active">
+        <div class="container">
+            <div class="header">
+                <h1>🍎 Dieta Fácil</h1>
+                <p>Entre ou cadastre-se para gerar sua dieta personalizada</p>
+            </div>
+            
+            <form id="loginForm" class="form">
+                <div class="input-group">
+                    <label>Email:</label>
+                    <input type="email" id="loginEmail" placeholder="seu@email.com" required>
+                </div>
+                
+                <div class="input-group">
+                    <label>Senha:</label>
+                    <input type="password" id="loginPassword" placeholder="Sua senha" required>
+                </div>
+                
+                <button type="submit" class="btn-primary">Entrar</button>
+            </form>
+            
+            <div class="separator">ou</div>
+            
+            <form id="registerForm" class="form">
+                <h3>Cadastrar Nova Conta</h3>
+                <div class="input-group">
+                    <label>Email:</label>
+                    <input type="email" id="registerEmail" placeholder="novo@email.com" required>
+                </div>
+                
+                <div class="input-group">
+                    <label>Senha:</label>
+                    <input type="password" id="registerPassword" placeholder="Mínimo 6 caracteres" required>
+                </div>
+                
+                <div class="input-group">
+                    <label>Orçamento Mensal (R$):</label>
+                    <input type="number" id="registerBudget" placeholder="300" value="300" min="50" required>
+                </div>
+                
+                <button type="submit" class="btn-secondary">Cadastrar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- TELA DO PERFIL -->
+    <div id="profileScreen" class="screen">
+        <div class="container">
+            <div class="header">
+                <h1>📊 Seu Perfil</h1>
+                <p>Preencha seus dados para gerar sua dieta inteligente</p>
+                <button id="logoutBtn" class="btn-logout">Sair</button>
+            </div>
+
+            <form id="profileForm" class="form">
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>Nome:</label>
+                        <input type="text" id="userName" placeholder="Seu nome completo" required>
+                    </div>
+                </div>
+
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>Idade:</label>
+                        <input type="number" id="userAge" placeholder="21" min="15" max="100" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Gênero:</label>
+                        <select id="userGender" required>
+                            <option value="">Selecione</option>
+                            <option value="Masculino">Masculino</option>
+                            <option value="Feminino">Feminino</option>
+                            <option value="Outro">Outro</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>Altura (cm):</label>
+                        <input type="number" id="userHeight" placeholder="175" min="100" max="250" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Peso (kg):</label>
+                        <input type="number" id="userWeight" placeholder="70" min="30" max="200" step="0.1" required>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Nível de Atividade:</label>
+                    <select id="userActivity" required>
+                        <option value="">Selecione seu nível</option>
+                        <option value="Sedentário">Sedentário (pouco ou nenhum exercício)</option>
+                        <option value="Levemente Ativo">Levemente Ativo (exercício leve 1-3 dias/semana)</option>
+                        <option value="Moderadamente Ativo">Moderadamente Ativo (exercício moderado 3-5 dias/semana)</option>
+                        <option value="Muito Ativo">Muito Ativo (exercício intenso 6-7 dias/semana)</option>
+                        <option value="Extremamente Ativo">Extremamente Ativo (atleta profissional)</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label>Seu Objetivo:</label>
+                    <select id="userGoal" required>
+                        <option value="">Selecione seu objetivo</option>
+                        <option value="Perder Peso">Perder Peso</option>
+                        <option value="Manter Peso">Manter Peso</option>
+                        <option value="Ganhar Massa Muscular">Ganhar Massa Muscular</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label>Seu Orçamento Mensal (R$):</label>
+                    <input type="number" id="userBudget" placeholder="300" min="50" max="5000" required>
+                    <small class="budget-note">Nosso sistema vai criar uma dieta que cabe neste valor</small>
+                </div>
+
+                <button type="submit" class="btn-generate">
+                    🍽️ Gerar Minha Dieta Inteligente
+                </button>
+            </form>
+
+            <div id="loadingMessage" class="loading hidden">
+                <div class="spinner"></div>
+                <p>Consultando nossa IA nutricional...</p>
+            </div>
+
+            <div id="result" class="result hidden"></div>
+        </div>
+    </div>
+
+    <script src="scripts/api.js"></script>
+    <script src="scripts/auth.js"></script>
+</body>
+</html>
