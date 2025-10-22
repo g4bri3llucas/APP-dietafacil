@@ -137,7 +137,7 @@ class AIService:
                 
                 # CÁLCULO DE MACROS: Somando os macros dos alimentos selecionados (assumindo 1 porção completa)
                 for food in selected_foods:
-                    # Usamos .get(..., 0) para garantir que mesmo que o campo não exista, não dê erro
+                    
                     total_proteins += food.get('protein', 0)
                     total_carbs += food.get('carbs', 0)
                     total_fat += food.get('fat', 0)
@@ -160,7 +160,6 @@ class AIService:
     def _parse_ai_response(self, response_json):
         """Função placeholder. Se a IA funcionar, implemente o parse do resultado aqui."""
         # Se a IA funcionar e retornar um JSON válido com macros/calorias,
-        # você deve parsear e retornar no formato do _generate_smart_fallback
         raise NotImplementedError("Parsing da resposta da IA não implementado. Usando fallback.")
 
 # Instância global do serviço de IA

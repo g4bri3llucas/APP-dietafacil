@@ -247,7 +247,7 @@ body {
         padding: 20px;
     }
     
-    /* Melhoria para touch */
+    /* touch */
     .btn-primary, .btn-secondary, .btn-logout, .btn-generate {
         min-height: 44px;
     }

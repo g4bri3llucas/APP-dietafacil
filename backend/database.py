@@ -17,7 +17,7 @@ class User(db.Model):
     profile = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime, nullable=True)
-    monthly_budget = db.Column(db.Float, default=0.0)  # NOVO: Orçamento mensal
+    monthly_budget = db.Column(db.Float, default=0.0)  
     
     food_entries = db.relationship('FoodEntry', backref='user', lazy=True)
     diet_plans = db.relationship('DietPlan', backref='user', lazy=True)
@@ -33,8 +33,8 @@ class FoodItem(db.Model):
     carbs = db.Column(db.Float, nullable=False)
     portion_size = db.Column(db.String(50), nullable=False)
     category = db.Column(db.String(50), nullable=False)
-    average_price = db.Column(db.Float, default=0.0)  # NOVO: Preço médio
-    price_unit = db.Column(db.String(20), default='R$')  # NOVO: Unidade de preço
+    average_price = db.Column(db.Float, default=0.0)  
+    price_unit = db.Column(db.String(20), default='R$')  
     
     food_entries = db.relationship('FoodEntry', backref='food_item', lazy=True)
 
@@ -50,7 +50,7 @@ class FoodEntry(db.Model):
     calories = db.Column(db.Integer, nullable=False)
     date = db.Column(db.Date, nullable=False)
 
-class DietPlan(db.Model):  # NOVA TABELA: Armazenar planos de dieta
+class DietPlan(db.Model):  
     __tablename__ = 'diet_plans'
     
     id = db.Column(db.Integer, primary_key=True)

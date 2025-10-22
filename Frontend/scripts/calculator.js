@@ -72,7 +72,7 @@ class DietCalculator {
             snack: 0.15
         };
         
-        // Alimentos exemplo (em uma aplicação real, viriam de um banco de dados)
+        // Alimentos 
         const foodDatabase = {
             breakfast: [
                 { name: "Ovos cozidos", calories: 140, portion: "2 unidades" },
@@ -84,7 +84,7 @@ class DietCalculator {
                 { name: "Arroz integral", calories: 110, portion: "4 colheres de sopa" },
                 { name: "Feijão", calories: 70, portion: "3 colheres de sopa" }
             ],
-            // ... outros alimentos
+            
         };
         
         // Gerar plano de refeições (simplificado)
@@ -107,7 +107,7 @@ class DietCalculator {
         const selectedFoods = [];
         let currentCalories = 0;
         
-        // Adicionar alimentos até atingir ou aproximar das calorias alvo
+        
         for (const food of availableFoods) {
             if (currentCalories + food.calories <= targetCalories) {
                 selectedFoods.push(food);

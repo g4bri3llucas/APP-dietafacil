@@ -11,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from database import db, init_db, User, FoodItem, FoodEntry, DietPlan
 from ai_service import ai_service
 
-# CORREÇÃO DO CAMINHO: Configura a pasta Frontend como estática
+
 app = Flask(__name__, static_folder='../Frontend', static_url_path='')
 CORS(app)
 
@@ -294,7 +294,5 @@ if __name__ == '__main__':
     print("-" * 50)
     # ==========================================================
 
-    # CORREÇÃO CRÍTICA PARA ACESSO REMOTO (ex: celular):
-    # O host='0.0.0.0' permite que a aplicação seja acessada de outras máquinas
-    # na mesma rede (usando o IP do seu computador).
+    
     app.run(debug=True, port=5000, host='0.0.0.0')

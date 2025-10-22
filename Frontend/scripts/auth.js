@@ -124,10 +124,10 @@ profileForm.addEventListener('submit', async function(e) {
         loadingMessage.classList.add('hidden');
         
         if (result.diet_plan) {
-            // CORREÇÃO CRÍTICA: Passando APENAS o objeto diet_plan para a função de exibição
+            
             displayDietResult(result.diet_plan); 
             
-            // CORREÇÃO: Salva o dietPlan no perfil para que o dashboard.js carregue corretamente depois
+            
             const currentProfile = AuthManager.getProfile();
             AuthManager.setProfile({ ...currentProfile, dietPlan: result.diet_plan });
             
@@ -184,7 +184,7 @@ function displayDietResult(dietPlan) {
             
             if (meal.foods && meal.foods.length > 0) {
                 meal.foods.forEach(food => {
-                    // CORREÇÃO 4: Removendo o acesso a 'food.calories', que não existe no JSON e causava 'undefined kcal'.
+                    
                     html += `<li>• ${food.portion} de ${food.name}</li>`; 
                 });
             } else {
@@ -206,8 +206,7 @@ function displayDietResult(dietPlan) {
 document.addEventListener('DOMContentLoaded', function() {
     if (AuthManager.isLoggedIn()) {
         const profile = AuthManager.getProfile();
-        // A lógica de exibição aqui dependerá do seu index.html e dashboard.js,
-        // mas o AuthManager já carrega o profile salvo.
+        
         if (profile) {
             loadProfileData(profile);
         }
