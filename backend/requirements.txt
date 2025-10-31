@@ -1,12 +1,12 @@
+psycopg2-binary==2.9.9
+bcrypt==4.0.1  # Versão mais estável para builds como o Render
 Flask==3.0.3
 Flask-CORS==4.0.0
 Flask-SQLAlchemy==3.1.1
 Pillow==10.3.0
-psycopg2-binary==2.9.9
 PyJWT==2.8.0
 python-dotenv==1.0.1
 requests==2.31.0
-bcrypt==4.1.2
 marshmallow==3.21.3
 Flask-Login==0.6.3
 Flask-Mail==0.9.1
