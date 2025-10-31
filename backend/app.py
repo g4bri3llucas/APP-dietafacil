@@ -1,10 +1,10 @@
+import os
 from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
+from flask_cors import CORS # Mantemos a importação
 import jwt
 import datetime
 from functools import wraps
 import json
-import os 
 from sqlalchemy.exc import IntegrityError
 
 # Importa tudo que vem do banco de dados e do serviço de IA
@@ -12,8 +12,18 @@ from database import db, init_db, User, FoodItem, FoodEntry, DietPlan
 from ai_service import ai_service
 
 
+# Configuramos o static_folder para apontar para o diretório Frontend
+# IMPORTANTE: Isso não será usado na hospedagem Render, mas mantemos para testes locais.
 app = Flask(__name__, static_folder='../Frontend', static_url_path='')
-CORS(app)
+
+# === CORREÇÃO DE CORS EXPLICITA PARA O RENDER ===
+# URL do seu Frontend hospedado
+FRONTEND_URL = "https://app-dietafacil.onrender.com"
+
+# Configura CORS para aceitar APENAS requisições do Frontend do Render
+# Isso é crucial para resolver o erro "Failed to fetch"
+CORS(app, resources={r"/api/*": {"origins": [FRONTEND_URL], "supports_credentials": True}})
+# ===============================================
 
 # Configurações gerais
 app.config['SECRET_KEY'] = 'dietafacil-secret-key-2024'
@@ -24,11 +34,14 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 init_db(app)
 
-# cria as tabelas do banco
+# Cria as tabelas do banco
 with app.app_context():
+    # Isso só funciona se o arquivo .db não existir. 
+    # Em ambientes de produção como o Render, o banco de dados SQLite pode ser problemático (não persistente), 
+    # mas continuaremos com ele para simplificar a hospedagem gratuita.
     db.create_all()
 
-# ==================== AUTENTICAÇÃO ====================
+# ==================== AUTENTICAÇÃO (MANTIDO) ====================
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -46,7 +59,7 @@ def token_required(f):
     return decorated
 
 
-# ==================== ROTAS ====================
+# ==================== ROTAS (MANTIDO) ====================
 
 # Registro de usuário
 @app.route('/api/register', methods=['POST'])
@@ -263,36 +276,18 @@ def health_check():
         'ai_service': 'available'
     }), 200
 
-# === ROTA DE FALLBACK SIMPLIFICADA PARA SPA ===
+# === ROTA DE FALLBACK (MANTIDA PARA TESTES LOCAIS, SEM USO NO RENDER) ===
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve_spa(path):
-    # Verifica se a rota solicitada é um arquivo estático existente (ex: /app.js)
     if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
         return send_from_directory(app.static_folder, path)
     
-    # Se não for um arquivo estático ou se for a rota raiz, envia o index.html
     return send_from_directory(app.static_folder, 'index.html')
 
-# ==================== EXECUÇÃO ====================
+
 if __name__ == '__main__':
-    # ==================== DEBUG DO CAMINHO ====================
-    # Estes prints mostrarão exatamente onde o Flask está procurando
-    cwd = os.getcwd()
-    print("-" * 50)
-    print(f"DEBUG: Diretório de Trabalho Atual (CWD): {cwd}")
-    print(f"DEBUG: Pasta Estática (static_folder) configurada como: {app.static_folder}")
-    
-    # Calcula o caminho completo que o Flask espera para o index.html
-    full_index_path = os.path.abspath(os.path.join(cwd, app.static_folder, 'index.html'))
-    print(f"DEBUG: Caminho ABSOLUTO esperado para index.html: {full_index_path}")
-
-    if os.path.exists(full_index_path):
-        print("DEBUG: ✅ ARQUIVO INDEX.HTML ENCONTRADO!")
-    else:
-        print("DEBUG: ❌ ARQUIVO INDEX.HTML NÃO ENCONTRADO! Verifique se este caminho existe no seu sistema.")
-    print("-" * 50)
-    # ==========================================================
-
-    
+    # Roda apenas em ambiente de desenvolvimento local
     app.run(debug=True, port=5000, host='0.0.0.0')
+
+# FIM do código. A execução em produção (gunicorn) usa o objeto 'app' diretamente.
