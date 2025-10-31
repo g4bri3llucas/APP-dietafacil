@@ -1,6 +1,6 @@
 import os
 from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS # Mantemos a importação
+from flask_cors import CORS 
 import jwt
 import datetime
 from functools import wraps
@@ -8,6 +8,7 @@ import json
 from sqlalchemy.exc import IntegrityError
 
 # Importa tudo que vem do banco de dados e do serviço de IA
+# NOTE: Presumo que 'database' e 'ai_service' estão disponíveis.
 from database import db, init_db, User, FoodItem, FoodEntry, DietPlan
 from ai_service import ai_service
 
@@ -19,10 +20,11 @@ app = Flask(__name__)
 # === CORREÇÃO DE CORS EXPLICITA PARA O RENDER ===
 # URL do seu Frontend hospedado
 FRONTEND_URL = "https://app-dietafacil.onrender.com"
+LOCAL_DEV_URLS = ["http://127.0.0.1:5500", "http://localhost:5500", "http://127.0.0.1:5000"] # Adicionando URLs comuns de desenvolvimento local
 
-# Configura CORS para aceitar APENAS requisições do Frontend do Render
-# Isso é crucial para resolver o erro "Failed to fetch"
-CORS(app, resources={r"/api/*": {"origins": [FRONTEND_URL], "supports_credentials": True}})
+# Configura CORS para aceitar requisições APENAS do Frontend do Render e de locais de desenvolvimento.
+# O uso de r"/*" garante que todas as rotas (incluindo '/api/register') sejam cobertas.
+CORS(app, resources={r"/*": {"origins": [FRONTEND_URL] + LOCAL_DEV_URLS, "supports_credentials": True}})
 # ===============================================
 
 # Configurações gerais
@@ -37,11 +39,9 @@ init_db(app)
 # Cria as tabelas do banco
 with app.app_context():
     # Isso só funciona se o arquivo .db não existir. 
-    # Em ambientes de produção como o Render, o banco de dados SQLite pode ser problemático (não persistente), 
-    # mas continuaremos com ele para simplificar a hospedagem gratuita.
     db.create_all()
 
-# ==================== AUTENTICAÇÃO (MANTIDO) ====================
+# ==================== AUTENTICAÇÃO ====================
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -59,7 +59,7 @@ def token_required(f):
     return decorated
 
 
-# ==================== ROTAS (MANTIDO) ====================
+# ==================== ROTAS ====================
 
 # Registro de usuário
 @app.route('/api/register', methods=['POST'])
@@ -69,6 +69,7 @@ def register():
         if not data or not data.get('email') or not data.get('password'):
             return jsonify({'message': 'Email e senha são obrigatórios'}), 400
         
+        # Verifica se o usuário já existe
         if User.query.filter_by(email=data['email']).first():
             return jsonify({'message': 'Usuário já existe'}), 409
         
@@ -83,15 +84,21 @@ def register():
         token = jwt.encode({
             'email': data['email'],
             'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
-        }, app.config['SECRET_KEY'])
+        }, app.config['SECRET_KEY'], algorithm="HS256") # Adicionei o algoritmo explicitamente para boa prática
 
+        # A resposta de registro deve corresponder ao que o frontend espera: token, perfil e sucesso.
         return jsonify({
             'message': 'Usuário criado com sucesso',
             'token': token,
-            'profile': None
+            'profile': user.to_dict() # Se user.to_dict() estiver implementado, senão use None ou os dados que quiser expor
         }), 201
         
     except Exception as e:
+        # Garante que erros de integridade (como e-mail duplicado) sejam tratados
+        if isinstance(e, IntegrityError):
+             db.session.rollback()
+             return jsonify({'message': 'Erro de integridade de dados (e-mail duplicado ou dados inválidos).'}), 409
+        
         return jsonify({'message': f'Erro interno: {str(e)}'}), 500
 
 
@@ -113,7 +120,7 @@ def login():
         token = jwt.encode({
             'email': user.email,
             'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
-        }, app.config['SECRET_KEY'])
+        }, app.config['SECRET_KEY'], algorithm="HS256") # Adicionei o algoritmo explicitamente para boa prática
 
         return jsonify({
             'message': 'Login realizado com sucesso',
@@ -266,7 +273,7 @@ def get_diet_plans(current_user):
         return jsonify({'message': f'Erro ao buscar planos: {str(e)}'}), 500
 
 
-# Rota de verificação de status
+# Rota de verificação de status (Health Check)
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({
