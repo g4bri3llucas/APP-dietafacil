@@ -1,24 +1,24 @@
-Usar uma imagem base oficial do Python
+Use an official Python base image
 
 FROM python:3.11-slim
 
-Definir variáveis de ambiente
+Define environment variables
 
 ENV PYTHONUNBUFFERED 1
 
-Criar e definir o diretório de trabalho dentro do container
+Create and set the working directory inside the container
 
 WORKDIR /usr/src/app
 
-Copiar os arquivos de requisitos e instalar dependências
+Copy requirement files and install dependencies
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-Copiar o restante do código da aplicação
+Copy the rest of the application code
 
 COPY . .
 
-Comando de inicialização, usando a variável de ambiente $PORT fornecida pelo Render
+Start command, using the $PORT environment variable provided by Render
 
 CMD ["gunicorn", "--bind", "0.0.0.0:$PORT", "app:app"]
