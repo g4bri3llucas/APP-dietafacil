@@ -1,0 +1,43 @@
+Diretórios de build/compilação/dependências
+
+/dist/
+/build/
+/out/
+/target/
+/tmp/
+
+Dependências de pacotes (Node.js, Python, Ruby, etc.)
+
+/node_modules
+/venv
+/env
+*.log
+
+Arquivos de IDE e Configurações de Editor
+
+.idea/
+.vscode/
+*.swp
+*.bak
+*.swo
+
+Arquivos de sistema operacional (macOS, Windows, Linux)
+
+.DS_Store
+Thumbs.db
+
+Arquivos temporários e de cache
+
+*~
+*.iml
+.sass-cache/
+.c9/
+
+Arquivos de Credenciais e Variáveis de Ambiente (CRUCIAL)
+
+.env
+.env.*
+config/local_settings.py
+secrets.json
+*.key
+*.pem
