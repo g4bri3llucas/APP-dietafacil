@@ -1,27 +1,13 @@
-Web e Servidor
-
 Flask==3.0.3
 Flask-CORS==4.0.0
 gunicorn==22.0.0
-
-Banco de Dados (PostgreSQL)
-
 Flask-SQLAlchemy==3.1.1
 SQLAlchemy==2.0.30
 psycopg2-binary==2.9.9
-
-Segurança e Autenticação
-
 bcrypt==4.1.2
 PyJWT==2.8.0
-
-Ferramentas Essenciais
-
 python-dotenv==1.0.1
 Pillow==10.3.0
-
-Outras dependências que podem ser necessárias para o seu código atual (mantidas por precaução)
-
 marshmallow==3.21.3
 Flask-Login==0.6.3
 requests==2.31.0
