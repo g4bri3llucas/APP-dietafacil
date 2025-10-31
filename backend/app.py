@@ -14,7 +14,7 @@ from ai_service import ai_service
 
 # Configuramos o static_folder para apontar para o diretório Frontend
 # IMPORTANTE: Isso não será usado na hospedagem Render, mas mantemos para testes locais.
-app = Flask(__name__, static_folder='../Frontend', static_url_path='')
+app = Flask(__name__)
 
 # === CORREÇÃO DE CORS EXPLICITA PARA O RENDER ===
 # URL do seu Frontend hospedado
