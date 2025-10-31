@@ -1,6 +1,8 @@
-const API_BASE_URL = 'http://localhost:5000';
+// A URL base agora é APENAS o domínio do backend (sem /api)
+const API_BASE_URL = 'https://api-dietafacil.onrender.com';
 
 class DietAPI {
+    // A URL construída será: https://api-dietafacil.onrender.com/api/register (CORRETO)
     static async register(userData) {
         const response = await fetch(`${API_BASE_URL}/api/register`, {
             method: 'POST',
@@ -12,6 +14,7 @@ class DietAPI {
         return await response.json();
     }
     
+    // A URL construída será: https://api-dietafacil.onrender.com/api/login (CORRETO)
     static async login(credentials) {
         const response = await fetch(`${API_BASE_URL}/api/login`, {
             method: 'POST',
@@ -23,6 +26,7 @@ class DietAPI {
         return await response.json();
     }
     
+    // A URL construída será: https://api-dietafacil.onrender.com/api/calculate-diet (CORRETO)
     static async calculateDiet(profileData) {
         const token = AuthManager.getToken();
         const response = await fetch(`${API_BASE_URL}/api/calculate-diet`, {
@@ -36,11 +40,13 @@ class DietAPI {
         return await response.json();
     }
     
+    // A URL construída será: https://api-dietafacil.onrender.com/api/food-search (CORRETO)
     static async getFoodSearch(query) {
         const response = await fetch(`${API_BASE_URL}/api/food-search?q=${encodeURIComponent(query)}`);
         return await response.json();
     }
     
+    // A URL construída será: https://api-dietafacil.onrender.com/api/user/budget (CORRETO)
     static async updateBudget(budget) {
         const token = AuthManager.getToken();
         const response = await fetch(`${API_BASE_URL}/api/user/budget`, {
@@ -54,6 +60,7 @@ class DietAPI {
         return await response.json();
     }
     
+    // A URL construída será: https://api-dietafacil.onrender.com/api/user/diet-plans (CORRETO)
     static async getDietPlans() {
         const token = AuthManager.getToken();
         const response = await fetch(`${API_BASE_URL}/api/user/diet-plans`, {
@@ -64,6 +71,7 @@ class DietAPI {
         return await response.json();
     }
     
+    // A URL construída será: https://api-dietafacil.onrender.com/api/health (CORRETO)
     static async healthCheck() {
         const response = await fetch(`${API_BASE_URL}/api/health`);
         return await response.json();
@@ -94,6 +102,7 @@ class AuthManager {
     }
     
     static setProfile(profile) {
-        localStorage.setItem('userProfile', JSON.stringify(profile));
+        
+alocalStorage.setItem('userProfile', JSON.stringify(profile));
     }
 }
