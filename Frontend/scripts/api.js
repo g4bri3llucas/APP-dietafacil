@@ -3,7 +3,7 @@ class ApiManager {
     // Definindo a URL base da API
     // Para produção no Render, é o próprio domínio do Backend seguido de /api
     // const API_BASE_URL = "http://127.0.0.1:5000/api"; // Linha original para testes locais
-    static API_BASE_URL = "https://app-dietafacil.onrender.com/api"; 
+    static API_BASE_URL = "https://app-dietafacil-backend.onrender.com"; 
 
     // Métodos de autenticação
     async register(email, password, monthlyBudget) {
