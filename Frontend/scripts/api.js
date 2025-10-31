@@ -1,11 +1,21 @@
+/**
+ * Arquivo: Frontend/scripts/api.js
+ * Descrição: Gerencia a comunicação com o backend e a lógica de autenticação no frontend.
+ */
+
 // Classe para gerenciar a comunicação com a API (Backend)
 class ApiManager {
     // Definindo a URL base da API
-    // Para produção no Render, é o próprio domínio do Backend seguido de /api
-    // const API_BASE_URL = "http://127.0.0.1:5000/api"; // Linha original para testes locais
+    // Utiliza o domínio do backend no Render.
     static API_BASE_URL = "https://app-dietafacil-backend.onrender.com"; 
 
-    // Métodos de autenticação
+    /**
+     * Tenta registrar um novo usuário no backend.
+     * @param {string} email
+     * @param {string} password
+     * @param {number} monthlyBudget
+     * @returns {Promise<object>} Objeto de resposta da API (token e dados do usuário).
+     */
     async register(email, password, monthlyBudget) {
         try {
             const response = await fetch(`${ApiManager.API_BASE_URL}/auth/register`, {
@@ -17,8 +27,9 @@ class ApiManager {
             });
 
             if (!response.ok) {
-                // Tenta ler o erro do corpo da resposta, se disponível
+                // Tenta ler o erro do corpo da resposta para dar uma mensagem amigável
                 const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido na API.' }));
+                // O servidor Flask envia a chave 'message' para erros
                 throw new Error(errorData.message || 'Falha ao registrar.');
             }
 
@@ -31,35 +42,40 @@ class ApiManager {
             throw new Error(`Erro de rede ou servidor: ${error.message}`);
         }
     }
-
-    // (O restante do código da classe ApiManager)
-    // ...
+    
+    // Adicionar métodos de login, perfil, dietas, etc., aqui.
 }
 
 // -------------------------------------------------------------
-// Funções de Gerenciamento de Autenticação (já existentes)
+// Funções de Gerenciamento de Autenticação (Local Storage)
 // -------------------------------------------------------------
 
 class AuthManager {
+    /** Retorna o token de autenticação salvo no Local Storage. */
     static getToken() {
         return localStorage.getItem('authToken');
     }
 
+    /** Salva o token de autenticação e um perfil básico. */
     static setToken(token) {
         localStorage.setItem('authToken', token);
-        localStorage.setItem('userProfile', '{"loggedIn": true}'); // Perfil simplificado
+        // Perfil simplificado (pode ser expandido com mais dados da resposta da API)
+        localStorage.setItem('userProfile', JSON.stringify({ loggedIn: true })); 
     }
 
+    /** Remove o token e o perfil, deslogando o usuário. */
     static logout() {
         localStorage.removeItem('authToken');
         localStorage.removeItem('userProfile');
     }
 
+    /** Retorna o perfil do usuário (ou null se não estiver logado). */
     static getProfile() {
         const profile = localStorage.getItem('userProfile');
         return profile ? JSON.parse(profile) : null;
     }
 
+    /** Salva o perfil completo (após login/registro). */
     static setProfile(profile) {
         localStorage.setItem('userProfile', JSON.stringify(profile));
     }
@@ -75,6 +91,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // Verifica se o formulário existe (garantia de que estamos na página correta)
     if (!registrationForm) return;
 
+    // Use uma função para exibir mensagens em vez de alert(), que é bloqueante
+    const showMessage = (message, isError = false) => {
+        // Implemente uma lógica de modal ou div de mensagem aqui. 
+        // Por enquanto, vou usar alert() para simplicidade de código.
+        if (isError) {
+            console.error(message);
+        } else {
+            console.log(message);
+        }
+        alert(message); // Mantenho o alert temporariamente.
+    };
+
     registrationForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
@@ -86,21 +114,25 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Exemplo básico de validação
         if (!email || !password || isNaN(monthlyBudget) || monthlyBudget <= 0) {
-            alert('Preencha todos os campos de registro corretamente.');
+            showMessage('Preencha todos os campos de registro corretamente.', true);
             return;
         }
 
+        // Instancia a classe de comunicação com a API
         const api = new ApiManager();
         try {
             // 2. Chama a API para registrar
             const data = await api.register(email, password, monthlyBudget);
 
-            // 3. Sucesso: Salva o token e redireciona (ou atualiza a UI)
+            // 3. Sucesso: Salva o token e redireciona
             AuthManager.setToken(data.token);
+            
+            // Salva dados do usuário (ajustar conforme a API retorna)
             AuthManager.setProfile({ 
                 email: email, 
                 monthly_budget: monthlyBudget,
-                loggedIn: true
+                loggedIn: true,
+                ...data.user // Inclui outros dados que o backend possa retornar
             });
             
             // Redireciona para o painel (Dashboard)
@@ -108,18 +140,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             // 4. Falha: Exibe a mensagem de erro da API
-            // A mensagem de erro agora inclui o erro de rede/servidor para melhor depuração
-            alert(`Erro ao cadastrar: ${error.message}`);
+            showMessage(`Erro ao cadastrar: ${error.message}`, true);
         }
     });
 
-    // Lógica para o formulário de login (opcional, mas bom ter)
+    // Lógica para o formulário de login (apenas um placeholder)
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            // ... (implementar lógica de login similar ao registro)
-            alert('Lógica de Login ainda não implementada.');
+            showMessage('Lógica de Login ainda não implementada.', true);
         });
     }
 });
