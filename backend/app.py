@@ -50,7 +50,7 @@ def token_required(f):
             current_user_id = data['user_id']
             # Verifica se o usuário ainda existe no DB (simulado)
             if current_user_id not in users_db:
-                 return jsonify({'message': 'Usuário do token não encontrado.'}), 401
+                return jsonify({'message': 'Usuário do token não encontrado.'}), 401
 
             # Passa o ID do usuário para a função da rota
             return f(current_user_id, *args, **kwargs)
@@ -71,9 +71,7 @@ def register():
     Espera JSON: { "email": "...", "password": "...", "monthly_budget": X.XX }
     """
     
-    # *** CORREÇÃO APLICADA AQUI ***
     # Adicionamos um tratamento mais robusto para a decodificação do JSON.
-    # Se request.get_json() falhar ou retornar None, tratamos explicitamente.
     try:
         data = request.get_json(force=True, silent=True) # Tenta forçar e silenciar erros de parser
     except Exception as e:
@@ -82,7 +80,6 @@ def register():
 
     # Verifica se os dados principais estão presentes
     if not data or not data.get('email') or not data.get('password'):
-        # ESTA É A MENSAGEM QUE VOCÊ ESTÁ RECEBENDO
         return jsonify({'message': 'Email e senha são obrigatórios'}), 400
 
     email = data.get('email')
