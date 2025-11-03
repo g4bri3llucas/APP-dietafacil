@@ -4,3 +4,4 @@ Flask-SQLAlchemy
 PyJWT
 gunicorn
 requests
+python-dotenv
