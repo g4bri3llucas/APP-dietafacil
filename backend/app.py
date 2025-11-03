@@ -1,299 +1,248 @@
 import os
-from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS 
-import jwt
-import datetime
-from functools import wraps
 import json
-from sqlalchemy.exc import IntegrityError
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+from dotenv import load_dotenv
+from functools import wraps
+import jwt
+from datetime import datetime, timedelta, timezone
 
-# Importa tudo que vem do banco de dados e do serviço de IA
-# NOTE: Presumo que 'database' e 'ai_service' estão disponíveis.
-from database import db, init_db, User, FoodItem, FoodEntry, DietPlan
-from ai_service import ai_service
+# Carregar variáveis de ambiente do .env (se existir)
+load_dotenv()
 
-
-# Configuramos o static_folder para apontar para o diretório Frontend
-# IMPORTANTE: Isso não será usado na hospedagem Render, mas mantemos para testes locais.
+# --- Configuração do Flask ---
 app = Flask(__name__)
 
-# === CORREÇÃO DE CORS EXPLICITA PARA O RENDER ===
-# **CORRIGIDO: A URL do seu Frontend hospedado deve ser a que termina em -2pca.**
-FRONTEND_URL = "https://app-dietafacil-frontend-2pca.onrender.com" 
-LOCAL_DEV_URLS = ["http://127.0.0.1:5500", "http://localhost:5500", "http://127.0.0.1:5000"] # Adicionando URLs comuns de desenvolvimento local
+# Configuração da URL de Origem para CORS
+# Em produção, o Render define o host do seu frontend.
+# Em desenvolvimento, use http://localhost:5500 ou o seu host de dev.
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5500')
+CORS(app, resources={r"/api/*": {"origins": [FRONTEND_URL, "https://app-dietafacil-frontend.onrender.com"]}})
 
-# Configura CORS para aceitar requisições APENAS do Frontend do Render e de locais de desenvolvimento.
-CORS(app, resources={r"/*": {"origins": [FRONTEND_URL] + LOCAL_DEV_URLS, "supports_credentials": True}})
-# ===============================================
+# Chave secreta para JWT (MUITO IMPORTANTE: use uma chave forte em produção!)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'sua_chave_secreta_padrao_muito_segura')
 
-# Configurações gerais
-app.config['SECRET_KEY'] = 'dietafacil-secret-key-2024'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///diet_app.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# --- Banco de Dados (Simulado em Memória) ---
+# Em um ambiente real, você usaria PostgreSQL, SQLite, etc.
+# Aqui, usamos um dicionário para simplificar.
+users_db = {} 
 
-# Inicializa o banco
-db.init_app(app)
-init_db(app)
+# --- Funções de Ajuda ---
 
-# Cria as tabelas do banco
-with app.app_context():
-    # Isso só funciona se o arquivo .db não existir. 
-    db.create_all()
-
-# ==================== AUTENTICAÇÃO ====================
 def token_required(f):
+    """
+    Decorator para proteger rotas. Verifica a validade do token JWT.
+    """
     @wraps(f)
     def decorated(*args, **kwargs):
-        token = request.headers.get('Authorization')
+        token = None
+        # O token é esperado no cabeçalho Authorization: Bearer <token>
+        if 'Authorization' in request.headers:
+            token = request.headers['Authorization'].split(" ")[1]
+
         if not token:
-            return jsonify({'message': 'Token necessário'}), 401
+            return jsonify({'message': 'Token está faltando!'}), 401
+        
         try:
-            if token.startswith('Bearer '):
-                token = token[7:]
+            # Tenta decodificar o token
             data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
-            current_user = data['email']
-        except:
-            return jsonify({'message': 'Token inválido'}), 401
-        return f(current_user, *args, **kwargs)
+            # O ID do usuário (user_id) está armazenado no token.
+            current_user_id = data['user_id']
+            # Verifica se o usuário ainda existe no DB (simulado)
+            if current_user_id not in users_db:
+                 return jsonify({'message': 'Usuário do token não encontrado.'}), 401
+
+            # Passa o ID do usuário para a função da rota
+            return f(current_user_id, *args, **kwargs)
+        except jwt.ExpiredSignatureError:
+            return jsonify({'message': 'Token expirado. Por favor, faça login novamente.'}), 401
+        except Exception as e:
+            # Qualquer outro erro de decodificação ou validação
+            return jsonify({'message': f'Token é inválido ou erro: {str(e)}'}), 401
+
     return decorated
 
+# --- Rotas de Autenticação ---
 
-# ==================== ROTAS ====================
-
-# Registro de usuário
 @app.route('/api/register', methods=['POST'])
 def register():
+    """
+    Registra um novo usuário.
+    Espera JSON: { "email": "...", "password": "...", "monthly_budget": X.XX }
+    """
+    
+    # *** CORREÇÃO APLICADA AQUI ***
+    # Adicionamos um tratamento mais robusto para a decodificação do JSON.
+    # Se request.get_json() falhar ou retornar None, tratamos explicitamente.
     try:
-        data = request.get_json()
-        if not data or not data.get('email') or not data.get('password'):
-            return jsonify({'message': 'Email e senha são obrigatórios'}), 400
-        
-        # Verifica se o usuário já existe
-        if User.query.filter_by(email=data['email']).first():
-            return jsonify({'message': 'Usuário já existe'}), 409
-        
-        user = User(
-            email=data['email'], 
-            password=data['password'],
-            monthly_budget=data.get('monthly_budget', 0.0)
-        )
-        db.session.add(user)
-        db.session.commit()
-        
-        token = jwt.encode({
-            'email': data['email'],
-            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
-        }, app.config['SECRET_KEY'], algorithm="HS256") # Adicionei o algoritmo explicitamente para boa prática
-
-        # A resposta de registro deve corresponder ao que o frontend espera: token, perfil e sucesso.
-        return jsonify({
-            'message': 'Usuário criado com sucesso',
-            'token': token,
-            'profile': user.to_dict() # Se user.to_dict() estiver implementado, senão use None ou os dados que quiser expor
-        }), 201
-        
+        data = request.get_json(force=True, silent=True) # Tenta forçar e silenciar erros de parser
     except Exception as e:
-        # Garante que erros de integridade (como e-mail duplicado) sejam tratados
-        if isinstance(e, IntegrityError):
-             db.session.rollback()
-             return jsonify({'message': 'Erro de integridade de dados (e-mail duplicado ou dados inválidos).'}), 409
-        
-        return jsonify({'message': f'Erro interno: {str(e)}'}), 500
+        print(f"Erro ao obter JSON na rota /api/register: {e}")
+        return jsonify({'message': 'Requisição malformada. Esperado JSON válido.'}), 400
 
+    # Verifica se os dados principais estão presentes
+    if not data or not data.get('email') or not data.get('password'):
+        # ESTA É A MENSAGEM QUE VOCÊ ESTÁ RECEBENDO
+        return jsonify({'message': 'Email e senha são obrigatórios'}), 400
 
-# Login
+    email = data.get('email')
+    password = data.get('password')
+    monthly_budget = data.get('monthly_budget', 0.0)
+    
+    # Lógica de validação e registro
+    if email in users_db:
+        return jsonify({'message': 'Usuário já existe. Por favor, faça login.'}), 409
+
+    # Simulação de hash de senha (Em produção, use uma biblioteca como `bcrypt`)
+    user_id = str(len(users_db) + 1)
+    users_db[user_id] = {
+        'id': user_id,
+        'email': email,
+        'password_hash': password, # MOCK: Armazenando a senha como está
+        'monthly_budget': monthly_budget,
+        'foods': [] # Lista de alimentos do usuário
+    }
+    
+    # Gera o token JWT para o novo usuário
+    token = jwt.encode(
+        {'user_id': user_id, 
+         'exp': datetime.now(timezone.utc) + timedelta(hours=24)},
+        app.config['SECRET_KEY'],
+        algorithm="HS256"
+    )
+
+    return jsonify({
+        'message': 'Usuário registrado com sucesso!', 
+        'auth_token': token
+    }), 201
+
 @app.route('/api/login', methods=['POST'])
 def login():
+    """
+    Faz login de um usuário existente e retorna um token JWT.
+    Espera JSON: { "email": "...", "password": "..." }
+    """
     try:
-        data = request.get_json()
-        if not data or not data.get('email') or not data.get('password'):
-            return jsonify({'message': 'Email e senha são obrigatórios'}), 400
-        
-        user = User.query.filter_by(email=data['email'], password=data['password']).first()
-        if not user:
-            return jsonify({'message': 'Credenciais inválidas'}), 401
-        
-        user.last_login = datetime.datetime.utcnow()
-        db.session.commit()
-        
-        token = jwt.encode({
-            'email': user.email,
-            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
-        }, app.config['SECRET_KEY'], algorithm="HS256") # Adicionei o algoritmo explicitamente para boa prática
+        data = request.get_json(force=True, silent=True)
+    except Exception:
+        return jsonify({'message': 'Requisição malformada. Esperado JSON válido.'}), 400
 
-        return jsonify({
-            'message': 'Login realizado com sucesso',
-            'token': token,
-            'profile': json.loads(user.profile) if user.profile else None,
-            'monthly_budget': user.monthly_budget
-        }), 200
-        
-    except Exception as e:
-        return jsonify({'message': f'Erro interno: {str(e)}'}), 500
+    if not data or not data.get('email') or not data.get('password'):
+        return jsonify({'message': 'Email e senha são obrigatórios para o login'}), 400
 
+    email = data.get('email')
+    password = data.get('password')
+    
+    # Encontra o usuário (MOCK: Itera sobre a simulação de DB)
+    user_data = next((user for user in users_db.values() if user['email'] == email), None)
 
-# Cálculo de dieta com IA
-@app.route('/api/calculate-diet', methods=['POST'])
-@token_required
-def calculate_diet(current_user):
-    try:
-        data = request.get_json()
-        required = ['age', 'gender', 'height', 'weight', 'activityLevel', 'goal']
-        for field in required:
-            if field not in data:
-                return jsonify({'message': f'Campo {field} obrigatório'}), 400
-        
-        user = User.query.filter_by(email=current_user).first()
-        if not user:
-            return jsonify({'message': 'Usuário não encontrado'}), 404
+    if not user_data or user_data['password_hash'] != password:
+        return jsonify({'message': 'Credenciais inválidas.'}), 401
 
-        monthly_budget = data.get('monthly_budget', user.monthly_budget or 300.0)
-        user.monthly_budget = monthly_budget
-        
-        food_items = FoodItem.query.all()
-        food_prices = [{
-            'id': f.id,
-            'name': f.name,
-            'average_price': f.average_price,
-            'portion_size': f.portion_size,
-            'calories': f.calories,
-            # Adiciona os campos de macros para o serviço de IA
-            'protein': f.protein, 
-            'carbs': f.carbs,
-            'fat': f.fat
-        } for f in food_items]
+    # Gera o token JWT
+    token = jwt.encode(
+        {'user_id': user_data['id'], 
+         'exp': datetime.now(timezone.utc) + timedelta(hours=24)},
+        app.config['SECRET_KEY'],
+        algorithm="HS256"
+    )
 
-        diet_plan = ai_service.generate_diet_with_budget(
-            user_data=data,
-            monthly_budget=monthly_budget,
-            food_prices=food_prices
-        )
-
-        new_diet_plan = DietPlan(
-            user_id=user.id,
-            plan_data=json.dumps(diet_plan),
-            total_cost=diet_plan.get('total_daily_cost', 0) * 30,
-            monthly_budget=monthly_budget
-        )
-        db.session.add(new_diet_plan)
-        
-        user.profile = json.dumps({
-            **data, 
-            'dietPlan': diet_plan,
-            'monthly_budget': monthly_budget
-        })
-        
-        db.session.commit()
-
-        return jsonify({
-            'diet_plan': diet_plan,
-            'message': 'Plano alimentar gerado com sucesso!'
-        }), 200
-
-    except Exception as e:
-        return jsonify({'message': f'Erro ao calcular dieta: {str(e)}'}), 500
-
-
-# Busca de alimentos
-@app.route('/api/food-search', methods=['GET'])
-def food_search():
-    try:
-        query = request.args.get('q', '').lower()
-        if query:
-            foods = FoodItem.query.filter(FoodItem.name.ilike(f'%{query}%')).limit(10).all()
-        else:
-            foods = FoodItem.query.limit(20).all()
-        
-        return jsonify([{
-            'id': food.id,
-            'name': food.name,
-            'calories': food.calories,
-            'protein': food.protein,
-            'fat': food.fat,
-            'carbs': food.carbs,
-            'portion': food.portion_size,
-            'category': food.category,
-            'average_price': food.average_price,
-            'price_unit': food.price_unit
-        } for food in foods])
-        
-    except Exception as e:
-        return jsonify({'message': f'Erro na busca: {str(e)}'}), 500
-
-
-# Atualizar orçamento
-@app.route('/api/user/budget', methods=['PUT'])
-@token_required
-def update_budget(current_user):
-    try:
-        data = request.get_json()
-        new_budget = data.get('monthly_budget')
-        
-        if new_budget is None or new_budget < 0:
-            return jsonify({'message': 'Orçamento inválido'}), 400
-        
-        user = User.query.filter_by(email=current_user).first()
-        if not user:
-            return jsonify({'message': 'Usuário não encontrado'}), 404
-        
-        user.monthly_budget = float(new_budget)
-        db.session.commit()
-        
-        return jsonify({
-            'message': 'Orçamento atualizado com sucesso',
-            'monthly_budget': user.monthly_budget
-        }), 200
-        
-    except Exception as e:
-        return jsonify({'message': f'Erro ao atualizar orçamento: {str(e)}'}), 500
-
-
-# Buscar planos de dieta anteriores
-@app.route('/api/user/diet-plans', methods=['GET'])
-@token_required
-def get_diet_plans(current_user):
-    try:
-        user = User.query.filter_by(email=current_user).first()
-        if not user:
-            return jsonify({'message': 'Usuário não encontrado'}), 404
-        
-        plans = DietPlan.query.filter_by(user_id=user.id).order_by(DietPlan.created_at.desc()).limit(5).all()
-        
-        return jsonify([{
-            'id': plan.id,
-            'total_cost': plan.total_cost,
-            'monthly_budget': plan.monthly_budget,
-            'created_at': plan.created_at.isoformat(),
-            'is_active': plan.is_active,
-            'plan_data': json.loads(plan.plan_data)
-        } for plan in plans]), 200
-        
-    except Exception as e:
-        return jsonify({'message': f'Erro ao buscar planos: {str(e)}'}), 500
-
-
-# Rota de verificação de status (Health Check)
-@app.route('/api/health', methods=['GET'])
-def health_check():
     return jsonify({
-        'status': 'online',
-        'timestamp': datetime.datetime.utcnow().isoformat(),
-        'database': 'connected',
-        'ai_service': 'available'
+        'message': 'Login realizado com sucesso!', 
+        'auth_token': token,
+        'user_id': user_data['id']
     }), 200
 
-# === ROTA DE FALLBACK (MANTIDA PARA TESTES LOCAIS, SEM USO NO RENDER) ===
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
-def serve_spa(path):
-    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
-        return send_from_directory(app.static_folder, path)
+# --- Rotas Protegidas (Exemplo) ---
+
+@app.route('/api/profile', methods=['GET'])
+@token_required
+def get_profile(current_user_id):
+    """
+    Retorna o perfil do usuário logado.
+    """
+    user_data = users_db.get(current_user_id)
+    if not user_data:
+        return jsonify({'message': 'Perfil de usuário não encontrado.'}), 404
+        
+    # Remove a senha antes de retornar
+    profile = user_data.copy()
+    profile.pop('password_hash', None)
+
+    return jsonify(profile), 200
+
+# --- Rotas de Alimentos ---
+
+@app.route('/api/food-list', methods=['GET'])
+@token_required
+def get_food_list(current_user_id):
+    """
+    Retorna a lista de alimentos cadastrados pelo usuário.
+    """
+    user_data = users_db.get(current_user_id)
+    if not user_data:
+        return jsonify({'message': 'Usuário não encontrado.'}), 404
+        
+    return jsonify(user_data.get('foods', [])), 200
+
+@app.route('/api/food/add', methods=['POST'])
+@token_required
+def add_food_to_list(current_user_id):
+    """
+    Adiciona um novo alimento à lista do usuário.
+    Espera JSON: { "name": "...", "calories": X, "protein": X.X, "carb": X.X, "fat": X.X }
+    """
+    try:
+        data = request.get_json(force=True, silent=True)
+    except Exception:
+        return jsonify({'message': 'Requisição malformada. Esperado JSON válido.'}), 400
+
+    required_fields = ['name', 'calories', 'protein', 'carb', 'fat']
+    if not data or any(field not in data for field in required_fields):
+        return jsonify({'message': 'Todos os campos do alimento são obrigatórios.'}), 400
+
+    new_food = {
+        'name': data['name'],
+        'calories': int(data['calories']),
+        'protein': float(data['protein']),
+        'carb': float(data['carb']),
+        'fat': float(data['fat']),
+        'id': str(len(users_db[current_user_id]['foods']) + 1)
+    }
+
+    users_db[current_user_id]['foods'].append(new_food)
+    return jsonify({'message': 'Alimento adicionado com sucesso!', 'food': new_food}), 201
+
+
+@app.route('/api/food/delete/<food_id>', methods=['DELETE'])
+@token_required
+def delete_food_from_list(current_user_id, food_id):
+    """
+    Deleta um alimento da lista do usuário pelo ID.
+    """
+    user_foods = users_db[current_user_id]['foods']
+    initial_length = len(user_foods)
     
-    return send_from_directory(app.static_folder, 'index.html')
+    # Filtra a lista, removendo o alimento com o ID correspondente
+    users_db[current_user_id]['foods'] = [food for food in user_foods if food['id'] != food_id]
+    
+    if len(users_db[current_user_id]['foods']) < initial_length:
+        return jsonify({'message': 'Alimento removido com sucesso!'}), 200
+    else:
+        return jsonify({'message': 'Alimento não encontrado.'}), 404
 
 
+# --- Rota Raiz (Saúde) ---
+@app.route('/', methods=['GET'])
+def health_check():
+    """
+    Endpoint simples para verificar se o serviço está no ar.
+    """
+    return jsonify({'status': 'ok', 'service': 'DietPlanner Backend', 'db_users_count': len(users_db)}), 200
+
+# Permite que o Flask seja executado diretamente (bom para desenvolvimento local)
 if __name__ == '__main__':
-    # Roda apenas em ambiente de desenvolvimento local
-    app.run(debug=True, port=5000, host='0.0.0.0')
-
-# FIM do código. A execução em produção (gunicorn) usa o objeto 'app' diretamente.
+    # O Render usa a variável de ambiente PORT, mas para teste local
+    # definimos um padrão.
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
