@@ -37,25 +37,26 @@ init_db(app)
 
 # Cria as tabelas do banco
 with app.app_context():
-    # Isso só funciona se o arquivo .db não existir. 
-    db.create_all()
+    # Isso só funciona se o arquivo .db não existir. 
+    db.create_all()
 
 # ==================== AUTENTICAÇÃO ====================
 def token_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = request.headers.get('Authorization')
-        if not token:
-            return jsonify({'message': 'Token necessário'}), 401
-        try:
-            if token.startswith('Bearer '):
-                token = token[7:]
-            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
-            current_user = data['email']
-        except:
-            return jsonify({'message': 'Token inválido'}), 401
-        return f(current_user, *args, **kwargs)
-    return decorated
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get('Authorization')
+        if not token:
+            return jsonify({'message': 'Token necessário'}), 401
+        try:
+            if token.startswith('Bearer '):
+                token = token[7:]
+            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
+            current_user = data['email']
+        except:
+            return jsonify({'message': 'Token inválido'}), 401
+        return f(current_user, *args, **kwargs)
+    return decorated
+
 
 
 # ==================== ROTAS ====================
