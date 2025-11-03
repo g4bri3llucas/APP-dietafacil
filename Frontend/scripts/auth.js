@@ -173,10 +173,12 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
+            // CRITICAL FIX: Group data into a single object for API consistency
+            const loginData = { email, password }; 
             
             try {
-                // CORREÇÃO: Chamando o método login da instância DietAPI
-                const result = await window.DietAPI.login(email, password); 
+                // Passando o objeto de dados único
+                const result = await window.DietAPI.login(loginData); 
                 
                 if (result.token) {
                     AuthManager.setToken(result.token);
@@ -215,10 +217,18 @@ document.addEventListener('DOMContentLoaded', function() {
                  showMessage('O orçamento mensal deve ser um valor válido e positivo.', true);
                  return;
             }
+
+            // <-- AQUI ESTÁ A CORREÇÃO CRÍTICA -->
+            // CRITICAL FIX: Group data into a single object for API consistency
+            const registrationData = { 
+                email, 
+                password, 
+                monthly_budget 
+            };
             
             try {
-                // CORREÇÃO: Chamando o método register com argumentos separados
-                const result = await window.DietAPI.register(email, password, monthly_budget);
+                // Passando o objeto de dados único
+                const result = await window.DietAPI.register(registrationData);
                 
                 if (result.token) {
                     AuthManager.setToken(result.token);
@@ -230,7 +240,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     showMessage('Cadastro realizado e login efetuado com sucesso!', false);
                     showScreen('profileScreen');
                 } else {
-                    showMessage('Erro no cadastro: ' + result.message, true);
+                    // O Backend deve retornar result.message em caso de erro (ex: email já cadastrado)
+                    showMessage('Erro no cadastro: ' + (result.message || 'Verifique o e-mail e tente novamente.'), true);
                 }
             } catch (error) {
                 showMessage('Erro ao cadastrar: ' + error.message, true);
@@ -294,8 +305,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            // Exemplo de como obter o token para enviar em um cabeçalho (se o calculateDiet exigir)
-            // const token = AuthManager.getToken();
             
             try {
                 // Mostra loading
