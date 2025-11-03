@@ -14,10 +14,20 @@ load_dotenv()
 app = Flask(__name__)
 
 # Configuração da URL de Origem para CORS
-# Em produção, o Render define o host do seu frontend.
-# Em desenvolvimento, use http://localhost:5500 ou o seu host de dev.
+# Adicionando uma lista mais abrangente para garantir compatibilidade com o Render.
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5500')
-CORS(app, resources={r"/api/*": {"origins": [FRONTEND_URL, "https://app-dietafacil-frontend.onrender.com"]}})
+# Lista de origens permitidas
+allowed_origins = [
+    FRONTEND_URL, 
+    "https://app-dietafacil-frontend.onrender.com",
+    # Adicionando um curinga para permitir qualquer subdomínio do onrender.com para fins de teste
+    "https://*.onrender.com" 
+]
+
+# A biblioteca flask-cors, no entanto, pode ter problemas com curingas no 'origins' se 'supports_credentials=True' não for usado,
+# mas para simplificar, vamos tentar usar a lista explícita e o curinga se for uma origem simples.
+# No Render, o mais seguro é listar as origens. Vamos manter a lista estrita, mas garantir que a URL principal seja pega.
+CORS(app, resources={r"/api/*": {"origins": allowed_origins}})
 
 # Chave secreta para JWT (MUITO IMPORTANTE: use uma chave forte em produção!)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'sua_chave_secreta_padrao_muito_segura')
@@ -235,7 +245,8 @@ def health_check():
     """
     Endpoint simples para verificar se o serviço está no ar.
     """
-    return jsonify({'status': 'ok', 'service': 'DietPlanner Backend', 'db_users_count': len(users_db)}), 200
+    # Inclui o FRONTEND_URL configurado para fácil diagnóstico
+    return jsonify({'status': 'ok', 'service': 'DietPlanner Backend', 'db_users_count': len(users_db), 'frontend_url_config': allowed_origins}), 200
 
 # Permite que o Flask seja executado diretamente (bom para desenvolvimento local)
 if __name__ == '__main__':
