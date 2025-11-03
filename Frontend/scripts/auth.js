@@ -61,14 +61,16 @@ function showScreen(screenId) {
 
 /** Exibe uma mensagem de erro ou sucesso para o usuário. (Substitui alert()) */
 const showMessage = (message, isError = false) => {
-    // Implementação temporária: use console e alert (deve ser substituído por um modal customizado)
-    if (isError) {
-        console.error(message);
-    } else {
-        console.log(message);
+    const logPrefix = isError ? "ERRO: " : "SUCESSO: ";
+    console.log(logPrefix + message);
+    
+    // NOTA: Em uma aplicação real, você substituiria esta linha por:
+    // displayCustomModal(message, isError);
+    
+    // Temporariamente, usamos o console e uma confirmação simples para feedback.
+    if (confirm(message)) {
+      // O usuário clicou em OK
     }
-    // Mantido alert() para feedback imediato no navegador
-    alert(message); 
 };
 
 
@@ -144,6 +146,9 @@ document.addEventListener('DOMContentLoaded', function() {
         showMessage("ERRO CRÍTICO: DietAPI não está definida. Verifique se o api.js foi carregado corretamente.", true);
         return; 
     }
+    
+    // Obtém a instância da API
+    const dietAPI = window.DietAPI;
 
     // Elementos do DOM
     const loginForm = document.getElementById('loginForm');
@@ -173,26 +178,31 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
-            // CRITICAL FIX: Group data into a single object for API consistency
+            
             const loginData = { email, password }; 
             
             try {
                 // Passando o objeto de dados único
-                const result = await window.DietAPI.login(loginData); 
+                const result = await dietAPI.login(loginData); 
                 
-                if (result.token) {
-                    AuthManager.setToken(result.token);
-                    // Salva os dados do perfil retornados pelo login
-                    AuthManager.setProfile({ ...result.user, loggedIn: true, email: email });
+                if (result.access_token) { // CORREÇÃO: Usa 'access_token' conforme backend Flask
+                    AuthManager.setToken(result.access_token);
+                    
+                    // O endpoint de login deve retornar os dados do usuário, mas se não retornar
+                    // o profile completo, usamos um placeholder temporário:
+                    const userProfile = result.user || { monthly_budget: 0 };
+                    AuthManager.setProfile({ ...userProfile, loggedIn: true, email: email });
 
                     // Carrega e exibe os dados
-                    loadProfileData(result.user);
+                    loadProfileData(userProfile);
                     showMessage('Login realizado com sucesso!', false);
                     showScreen('profileScreen');
                 } else {
-                    showMessage('Erro no login: Credenciais inválidas', true);
+                    // Se não tiver token, mas tiver uma mensagem de erro do servidor
+                    showMessage('Erro no login: ' + (result.message || 'Credenciais inválidas ou erro desconhecido.'), true);
                 }
             } catch (error) {
+                // Erro de rede ou erro tratado no api.js
                 showMessage('Erro ao fazer login: ' + error.message, true);
             }
         });
@@ -214,12 +224,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             if (isNaN(monthly_budget) || monthly_budget <= 0) {
-                 showMessage('O orçamento mensal deve ser um valor válido e positivo.', true);
-                 return;
+                showMessage('O orçamento mensal deve ser um valor válido e positivo.', true);
+                return;
             }
 
-            // <-- AQUI ESTÁ A CORREÇÃO CRÍTICA -->
-            // CRITICAL FIX: Group data into a single object for API consistency
             const registrationData = { 
                 email, 
                 password, 
@@ -228,22 +236,24 @@ document.addEventListener('DOMContentLoaded', function() {
             
             try {
                 // Passando o objeto de dados único
-                const result = await window.DietAPI.register(registrationData);
+                const result = await dietAPI.register(registrationData);
                 
-                if (result.token) {
-                    AuthManager.setToken(result.token);
-                    // Salva os dados do perfil (incluindo o orçamento)
-                    AuthManager.setProfile({ ...result.user, loggedIn: true, email: email });
+                if (result.access_token) { // CORREÇÃO: Usa 'access_token' conforme backend Flask
+                    AuthManager.setToken(result.access_token);
+                    
+                    const userProfile = result.user || { monthly_budget: monthly_budget };
+                    AuthManager.setProfile({ ...userProfile, loggedIn: true, email: email });
 
                     // Carrega e exibe os dados
-                    loadProfileData(result.user);
+                    loadProfileData(userProfile);
                     showMessage('Cadastro realizado e login efetuado com sucesso!', false);
                     showScreen('profileScreen');
                 } else {
-                    // O Backend deve retornar result.message em caso de erro (ex: email já cadastrado)
+                    // Se não tiver token, mas tiver uma mensagem de erro do servidor
                     showMessage('Erro no cadastro: ' + (result.message || 'Verifique o e-mail e tente novamente.'), true);
                 }
             } catch (error) {
+                // Erro de rede ou erro tratado no api.js
                 showMessage('Erro ao cadastrar: ' + error.message, true);
             }
         });
@@ -254,7 +264,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // ----------------------
     if (logoutBtn) {
         logoutBtn.addEventListener('click', function() {
-            // Não usamos confirm(), apenas deslogamos
             AuthManager.logout();
             showMessage('Você saiu da sua conta.', false);
             showScreen('loginScreen');
@@ -273,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             
             // Checa se a função calculateDiet existe na API antes de chamar
-            if (typeof window.DietAPI.calculateDiet !== 'function') {
+            if (typeof dietAPI.calculateDiet !== 'function') {
                 showMessage('Erro: O método calculateDiet não está implementado na API.', true);
                 return;
             }
@@ -312,7 +321,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(resultDiv) resultDiv.classList.add('hidden');
                 
                 // Chamada da API para calcular a dieta
-                const result = await window.DietAPI.calculateDiet(profileData);
+                const result = await dietAPI.calculateDiet(profileData);
                 
                 // Esconde loading
                 if(loadingMessage) loadingMessage.classList.add('hidden');
