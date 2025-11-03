@@ -1,17 +1,25 @@
-# Usa a imagem base oficial do Python 3.11 em uma versão slim (mais leve)
+Usar a imagem oficial do Python, que garante o ambiente correto.
+
 FROM python:3.11-slim
 
-# Define o diretório de trabalho dentro do container (onde o app.py está)
+Definir variavel de ambiente para logs (padrao do Python)
+
+ENV PYTHONUNBUFFERED 1
+
+Definir o diretorio de trabalho no container
+
 WORKDIR /usr/src/app
 
-# Copia e instala as dependências
+Copiar os requisitos e instalar as dependencias
+
 COPY requirements.txt .
+
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copia o restante do código da aplicação
+Copiar o restante do codigo da aplicacao
+
 COPY . .
 
-# Comando principal para iniciar a aplicação usando gunicorn de forma explícita.
-# Este comando força o gunicorn a procurar 'app' dentro do módulo 'app.py' 
-# e escutar na porta correta fornecida pela plataforma ($PORT).
-CMD exec gunicorn --bind 0.0.0.0:$PORT app:app
+Comando para rodar a aplicacao com Gunicorn, apontando para 'app.py' (modulo) e 'app' (instancia Flask)
+
+CMD ["gunicorn", "--bind", "0.0.0.0:$PORT", "app:app"]
