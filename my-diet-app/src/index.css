@@ -1,0 +1,24 @@
+/* src/index.css
+    
+    Este arquivo é onde o Tailwind injeta seus estilos base, componentes e utilitários. 
+    Mantenha estas três diretivas no topo.
+*/
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Estilos globais adicionais (Opcional)
+    Você pode adicionar regras CSS personalizadas aqui que o Tailwind não cobre,
+    mas tente priorizar classes do Tailwind.
+*/
+
+/* Define a cor de fundo e a fonte Inter para toda a aplicação */
+body {
+    @apply bg-gray-50 text-gray-800 font-sans;
+}
+
+/* Garante que o elemento root da sua aplicação ocupe toda a altura */
+#root, #app {
+    min-height: 100vh;
+}

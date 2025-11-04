@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dieta Fácil - Sua Dieta Personalizada</title>
+    <!-- Carregamento do Tailwind CSS para Estilização -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Variáveis CSS para Cores */
+        :root {
+            --primary: #4f46e5; /* Indigo */
+            --secondary: #10b981; /* Emerald */
+            --danger: #ef4444; /* Red */
+        }
+
+        /* Estilos Globais e Layout Centralizado */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* light background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        /* Contêiner Principal da Tela */
+        .screen {
+            display: none;
+            width: 100%;
+            max-width: 480px;
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        .container {
+            width: 100%;
+        }
+
+        /* Estilo do Título Principal */
+        .header h1 {
+            color: var(--primary);
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        /* Estilo dos Grupos de Input */
+        .input-group label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.25rem;
+            display: block;
+            font-size: 0.9rem;
+        }
+        
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        /* Estilos de Botões */
+        .btn-primary, .btn-secondary, .btn-generate, .btn-logout {
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s;
+            width: 100%;
+            margin-top: 1rem;
+            cursor: pointer;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary);
+            color: white;
+        }
+
+        .btn-generate {
+            background-color: #f59e0b; /* Amber */
+            color: white;
+        }
+
+        .btn-logout {
+            background-color: var(--danger);
+            color: white;
+            width: auto;
+            margin-top: 0;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        /* Estilo do Separador "ou" */
+        .separator {
+            text-align: center;
+            margin: 1.5rem 0;
+            color: #6b7280;
+            position: relative;
+        }
+
+        .separator::before, .separator::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 40%;
+            height: 1px;
+            background: #e5e7eb;
+        }
+
+        .separator::before { left: 0; }
+        .separator::after { right: 0; }
+
+        /* Estilo para inputs lado a lado */
+        .input-row {
+            display: flex;
+            gap: 1rem;
+        }
+        .input-row .input-group {
+            flex: 1;
+        }
+
+        /* Nota de Orçamento */
+        .budget-note {
+            display: block;
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: -0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Loading Spinner */
+        .loading {
+            text-align: center;
+            padding: 2rem 0;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- TELA DE LOGIN/CADASTRO -->
+    <div id="loginScreen" class="screen active">
+        <div class="container">
+            <div class="header text-center mb-6">
+                <h1 class="text-3xl font-extrabold">🍎 Dieta Fácil</h1>
+                <p class="text-gray-600 mt-2">Entre ou cadastre-se para gerar sua dieta personalizada</p>
+            </div>
+            
+            <!-- Mensagem de Erro/Sucesso (global) -->
+            <div id="messageBox" class="text-center p-3 rounded-lg hidden mb-4 text-sm"></div>
+
+            <form id="loginForm" class="form">
+                <div class="input-group">
+                    <label for="loginEmail">Email:</label>
+                    <input type="email" id="loginEmail" placeholder="seu@email.com" required>
+                </div>
+                
+                <div class="input-group">
+                    <label for="loginPassword">Senha:</label>
+                    <input type="password" id="loginPassword" placeholder="Sua senha" required>
+                </div>
+                
+                <button type="submit" class="btn-primary">Entrar</button>
+            </form>
+            
+            <div class="separator">ou</div>
+            
+            <form id="registerForm" class="form">
+                <h3 class="text-xl font-semibold mb-4 text-gray-700">Cadastrar Nova Conta</h3>
+                <div class="input-group">
+                    <label for="registerEmail">Email:</label>
+                    <input type="email" id="registerEmail" placeholder="novo@email.com" required>
+                </div>
+                
+                <div class="input-group">
+                    <label for="registerPassword">Senha:</label>
+                    <input type="password" id="registerPassword" placeholder="Mínimo 6 caracteres" required>
+                </div>
+                
+                <div class="input-group">
+                    <label for="registerBudget">Orçamento Mensal (R$):</label>
+                    <input type="number" id="registerBudget" placeholder="300" value="300" min="50" required>
+                </div>
+                
+                <button type="submit" class="btn-secondary">Cadastrar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- TELA DO PERFIL & DASHBOARD -->
+    <div id="profileScreen" class="screen">
+        <div class="container">
+            <div class="header flex justify-between items-center mb-6">
+                <div>
+                    <h1 class="text-3xl font-extrabold text-gray-800">📊 Dashboard</h1>
+                    <p class="text-gray-500 text-sm mt-1" id="userIdentifier">UID: ...</p>
+                </div>
+                <button id="logoutBtn" class="btn-logout">Sair</button>
+            </div>
+
+            <form id="profileForm" class="form bg-white p-6 rounded-xl shadow-inner border border-gray-100">
+                <h2 class="text-2xl font-bold mb-4 text-gray-700">Meus Dados</h2>
+                
+                <div class="input-row">
+                    <div class="input-group">
+                        <label for="userName">Nome:</label>
+                        <input type="text" id="userName" placeholder="Seu nome completo" required>
+                    </div>
+                </div>
+
+                <div class="input-row">
+                    <div class="input-group">
+                        <label for="userAge">Idade:</label>
+                        <input type="number" id="userAge" placeholder="21" min="15" max="100" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="userGender">Gênero:</label>
+                        <select id="userGender" required>
+                            <option value="">Selecione</option>
+                            <option value="Masculino">Masculino</option>
+                            <option value="Feminino">Feminino</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-row">
+                    <div class="input-group">
+                        <label for="userHeight">Altura (cm):</label>
+                        <input type="number" id="userHeight" placeholder="175" min="100" max="250" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="userWeight">Peso (kg):</label>
+                        <input type="number" id="userWeight" placeholder="70" min="30" max="200" step="0.1" required>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="userActivity">Nível de Atividade:</label>
+                    <select id="userActivity" required>
+                        <option value="">Selecione seu nível</option>
+                        <option value="Sedentário">Sedentário (pouco ou nenhum exercício)</option>
+                        <option value="Levemente Ativo">Levemente Ativo (exercício leve 1-3 dias/semana)</option>
+                        <option value="Moderadamente Ativo">Moderadamente Ativo (exercício moderado 3-5 dias/semana)</option>
+                        <option value="Muito Ativo">Muito Ativo (exercício intenso 6-7 dias/semana)</option>
+                        <option value="Extremamente Ativo">Extremamente Ativo (atleta profissional)</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="userGoal">Seu Objetivo:</label>
+                    <select id="userGoal" required>
+                        <option value="">Selecione seu objetivo</option>
+                        <option value="Perder Peso">Perder Peso</option>
+                        <option value="Manter Peso">Manter Peso</option>
+                        <option value="Ganhar Massa Muscular">Ganhar Massa Muscular</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="userBudget">Seu Orçamento Mensal (R$):</label>
+                    <input type="number" id="userBudget" placeholder="300" min="50" max="5000" required>
+                    <small class="budget-note">Nosso sistema vai criar uma dieta que cabe neste valor</small>
+                </div>
+
+                <button type="submit" class="btn-generate">
+                    🍽️ Gerar Minha Dieta Inteligente
+                </button>
+            </form>
+
+            <div id="loadingMessage" class="loading hidden mt-6">
+                <div class="spinner"></div>
+                <p class="text-lg text-gray-600">Consultando nossa IA nutricional... Aguarde um momento.</p>
+            </div>
+
+            <!-- RESULTADO DA DIETA GERADA PELA IA -->
+            <div id="result" class="result hidden mt-6 bg-white p-6 rounded-xl shadow-xl">
+                <h2 class="text-2xl font-bold mb-4 text-green-700">✅ Seu Plano de Dieta!</h2>
+                <div id="resultContent" class="prose max-w-none text-gray-700">
+                    <!-- Conteúdo da IA será injetado aqui -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase e Lógica da Aplicação (Tudo consolidado aqui) -->
+    <script type="module">
+        // Importações do Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Variáveis globais do ambiente (MANDATÓRIO)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db, auth, currentUserId = null;
+        let isAuthReady = false;
+
+        // Elementos da UI
+        const loginScreen = document.getElementById('loginScreen');
+        const profileScreen = document.getElementById('profileScreen');
+        const messageBox = document.getElementById('messageBox');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const resultContent = document.getElementById('resultContent');
+        const resultDiv = document.getElementById('result');
+        const profileForm = document.getElementById('profileForm');
+        const userIdentifierEl = document.getElementById('userIdentifier');
+
+        /**
+         * Alterna a exibição entre as telas de Login e Perfil.
+         * @param {string} screenId 'loginScreen' ou 'profileScreen'
+         */
+        function showScreen(screenId) {
+            loginScreen.classList.remove('active');
+            profileScreen.classList.remove('active');
+            if (screenId === 'loginScreen') {
+                loginScreen.classList.add('active');
+            } else {
+                profileScreen.classList.add('active');
+            }
+        }
+
+        /**
+         * Exibe uma mensagem de erro ou sucesso na tela de login/cadastro.
+         * @param {string} message - A mensagem a ser exibida.
+         * @param {string} type - 'success' ou 'error'.
+         */
+        function displayMessage(message, type) {
+            messageBox.textContent = message;
+            messageBox.classList.remove('hidden', 'bg-red-100', 'text-red-800', 'bg-green-100', 'text-green-800');
+            if (type === 'error') {
+                messageBox.classList.add('bg-red-100', 'text-red-800');
+            } else {
+                messageBox.classList.add('bg-green-100', 'text-green-800');
+            }
+            // Adicionado um delay para que a mensagem seja visível por um tempo
+            messageBox.classList.remove('hidden');
+            setTimeout(() => { messageBox.classList.add('hidden'); }, 5000); 
+        }
+
+        // --- INICIALIZAÇÃO E AUTENTICAÇÃO FIREBASE ---
+
+        window.onload = async () => {
+            try {
+                // 1. Inicializa o Firebase
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // 2. Realiza o login inicial (Custom Token ou Anônimo)
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                // 3. Define o listener de estado de autenticação
+                onAuthStateChanged(auth, (user) => {
+                    isAuthReady = true;
+                    if (user) {
+                        currentUserId = user.uid;
+                        userIdentifierEl.textContent = `Usuário ID: ${currentUserId}`;
+                        showScreen('profileScreen');
+                        loadUserProfile(currentUserId);
+                    } else {
+                        currentUserId = null;
+                        userIdentifierEl.textContent = 'Usuário não autenticado';
+                        showScreen('loginScreen');
+                    }
+                });
+
+            } catch (error) {
+                console.error("Erro na inicialização do Firebase ou autenticação:", error);
+                displayMessage("Erro ao carregar o app. Tente novamente.", 'error');
+            }
+        };
+
+        // --- FUNÇÕES DE AUTENTICAÇÃO ---
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                displayMessage("Login realizado com sucesso!", 'success');
+            } catch (error) {
+                console.error("Erro no Login:", error);
+                displayMessage("Erro no login: " + error.message, 'error');
+            }
+        });
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const budget = document.getElementById('registerBudget').value;
+
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const userId = userCredential.user.uid;
+
+                // Salva o orçamento inicial no perfil do usuário recém-criado
+                await saveUserProfile({ email, userBudget: parseFloat(budget) }, userId);
+
+                displayMessage("Cadastro realizado com sucesso! Redirecionando...", 'success');
+            } catch (error) {
+                console.error("Erro no Cadastro:", error);
+                displayMessage("Erro no cadastro: " + error.message, 'error');
+            }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                displayMessage("Desconectado com sucesso.", 'success');
+            } catch (error) {
+                console.error("Erro ao fazer Logout:", error);
+                displayMessage("Erro ao sair: " + error.message, 'error');
+            }
+        });
+
+        // --- FUNÇÕES DE PERSISTÊNCIA (FIRESTORE) ---
+
+        /**
+         * Salva dados do perfil no Firestore.
+         * @param {object} profileData - Dados do perfil a serem salvos.
+         * @param {string} userId - O ID do usuário.
+         */
+        async function saveUserProfile(profileData, userId) {
+            if (!db || !userId) {
+                console.error("Firebase ou UserId não está pronto.");
+                return;
+            }
+            try {
+                // Caminho privado: /artifacts/{appId}/users/{userId}/user_data/profile
+                const docRef = doc(db, 'artifacts', appId, 'users', userId, 'user_data', 'profile');
+                await setDoc(docRef, profileData, { merge: true });
+                // console.log("Perfil salvo/atualizado com sucesso.");
+            } catch (error) {
+                console.error("Erro ao salvar perfil no Firestore:", error);
+                displayMessage("Erro ao salvar dados do perfil.", 'error');
+            }
+        }
+
+        /**
+         * Carrega dados do perfil em tempo real usando onSnapshot.
+         * @param {string} userId - O ID do usuário.
+         */
+        function loadUserProfile(userId) {
+            if (!db || !userId) return;
+
+            // Caminho privado: /artifacts/{appId}/users/{userId}/user_data/profile
+            const docRef = doc(db, 'artifacts', appId, 'users', userId, 'user_data', 'profile');
+            
+            // Listener em tempo real
+            onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    // Preenche o formulário com os dados carregados
+                    document.getElementById('userName').value = data.userName || '';
+                    document.getElementById('userAge').value = data.userAge || '';
+                    document.getElementById('userGender').value = data.userGender || '';
+                    document.getElementById('userHeight').value = data.userHeight || '';
+                    document.getElementById('userWeight').value = data.userWeight || '';
+                    document.getElementById('userActivity').value = data.userActivity || '';
+                    document.getElementById('userGoal').value = data.userGoal || '';
+                    document.getElementById('userBudget').value = data.userBudget || '';
+
+                    // Se a dieta já foi gerada, exibe o resultado
+                    if (data.latestDietResult) {
+                        resultContent.innerHTML = data.latestDietResult;
+                        resultDiv.classList.remove('hidden');
+                    } else {
+                         resultDiv.classList.add('hidden');
+                    }
+                }
+            }, (error) => {
+                console.error("Erro ao carregar perfil em tempo real:", error);
+            });
+        }
+
+        // --- LÓGICA DE CÁLCULO NUTRICIONAL (Antigo calculator.js) ---
+
+        /**
+         * Calcula o BMR (Taxa Metabólica Basal) usando a fórmula de Harris-Benedict revisada.
+         */
+        function calculateBMR(weight, height, age, gender) {
+            if (gender === 'Masculino') {
+                // Homens: 88.362 + (13.397 * peso em kg) + (4.799 * altura em cm) - (5.677 * idade em anos)
+                return 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age);
+            } else if (gender === 'Feminino') {
+                // Mulheres: 447.593 + (9.247 * peso em kg) + (3.098 * altura em cm) - (4.330 * idade em anos)
+                return 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age);
+            }
+            return 0; 
+        }
+
+        /**
+         * Calcula o TDEE (Gasto Energético Diário Total) com base no BMR e fator de atividade.
+         */
+        function calculateTDEE(bmr, activityLevel) {
+            const activityFactors = {
+                'Sedentário': 1.2,
+                'Levemente Ativo': 1.375,
+                'Moderadamente Ativo': 1.55,
+                'Muito Ativo': 1.725,
+                'Extremamente Ativo': 1.9
+            };
+            const factor = activityFactors[activityLevel] || 1.2;
+            return bmr * factor;
+        }
+
+        /**
+         * Calcula o déficit/superávit calórico e a distribuição de macronutrientes.
+         */
+        function calculateTargetAndMacros(tdee, goal) {
+            let targetCalories;
+            let proteinPct, carbPct, fatPct;
+
+            switch (goal) {
+                case 'Perder Peso':
+                    targetCalories = tdee - 500; // Déficit moderado
+                    proteinPct = 35;
+                    carbPct = 40;
+                    fatPct = 25;
+                    break;
+                case 'Ganhar Massa Muscular':
+                    targetCalories = tdee + 300; // Superávit moderado
+                    proteinPct = 30;
+                    carbPct = 50;
+                    fatPct = 20;
+                    break;
+                case 'Manter Peso':
+                default:
+                    targetCalories = tdee;
+                    proteinPct = 25;
+                    carbPct = 50;
+                    fatPct = 25;
+                    break;
+            }
+
+            // Garante que as calorias alvo não sejam negativas ou muito baixas
+            targetCalories = Math.max(1200, targetCalories); 
+
+            const proteinCals = targetCalories * (proteinPct / 100);
+            const carbCals = targetCalories * (carbPct / 100);
+            const fatCals = targetCalories * (fatPct / 100);
+
+            // Conversão para gramas (4 cal/g para Proteína/Carb, 9 cal/g para Gordura)
+            const proteinGrams = proteinCals / 4;
+            const carbGrams = carbCals / 4;
+            const fatGrams = fatCals / 9;
+
+            return {
+                targetCalories: Math.round(targetCalories),
+                macros: {
+                    proteinGrams: Math.round(proteinGrams),
+                    carbGrams: Math.round(carbGrams),
+                    fatGrams: Math.round(fatGrams)
+                }
+            };
+        }
+        
+        // --- FUNÇÃO PRINCIPAL DE GERAÇÃO (Antigo api.js) ---
+
+        /**
+         * Lida com a submissão do formulário, salva o perfil, calcula necessidades e chama a IA.
+         */
+        profileForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // 1. Coleta e validação dos dados do formulário
+            const userName = document.getElementById('userName').value;
+            const userAge = parseInt(document.getElementById('userAge').value);
+            const userGender = document.getElementById('userGender').value;
+            const userHeight = parseInt(document.getElementById('userHeight').value);
+            const userWeight = parseFloat(document.getElementById('userWeight').value);
+            const userActivity = document.getElementById('userActivity').value;
+            const userGoal = document.getElementById('userGoal').value;
+            const userBudget = parseFloat(document.getElementById('userBudget').value);
+
+            const profileData = {
+                userName, userAge, userGender, userHeight, userWeight, userActivity, userGoal, userBudget
+            };
+
+            // 2. Salva o perfil no Firestore
+            if (currentUserId) {
+                await saveUserProfile(profileData, currentUserId);
+            }
+
+            // 3. Cálculos Nutricionais
+            const bmr = calculateBMR(userWeight, userHeight, userAge, userGender);
+            const tdee = calculateTDEE(bmr, userActivity);
+            const { targetCalories, macros } = calculateTargetAndMacros(tdee, userGoal);
+
+            const calculatedData = {
+                bmr: Math.round(bmr),
+                tdee: Math.round(tdee),
+                targetCalories,
+                macros
+            };
+            
+            // 4. Gera a Dieta Inteligente com a Gemini API
+            await generateIntelligentDiet(profileData, calculatedData);
+        });
+
+        // Configuração da API para geração de conteúdo
+        const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=";
+        const API_KEY = ""; // Será preenchido pelo Canvas em runtime
+
+        /**
+         * Gera a dieta usando a API do Gemini com base nos dados do usuário e cálculos.
+         */
+        async function generateIntelligentDiet(profileData, calculatedData) {
+            // Exibe o loading e esconde o resultado
+            loadingMessage.classList.remove('hidden');
+            resultDiv.classList.add('hidden');
+            resultContent.innerHTML = '';
+
+            const { targetCalories, macros } = calculatedData;
+            
+            // Monta o prompt detalhado para a IA
+            const systemPrompt = `Você é um Assistente Nutricional de IA, especializado em criar planos de dieta otimizados, realistas e que respeitam o orçamento. Sua resposta DEVE ser apenas o plano de dieta formatado em Markdown. Não inclua introduções, saudações ou explicações.`;
+
+            const userQuery = `
+                Gere um plano de dieta semanal (7 dias) realista e com foco em alimentos baratos no Brasil, priorizando a sustentabilidade orçamentária.
+                
+                **Dados do Usuário:**
+                - Nome: ${profileData.userName}
+                - Gênero: ${profileData.userGender}
+                - Idade: ${profileData.userAge} anos
+                - Peso: ${profileData.userWeight} kg
+                - Altura: ${profileData.userHeight} cm
+                - Nível de Atividade: ${profileData.userActivity}
+                - Objetivo Principal: ${profileData.userGoal}
+                - Orçamento Máximo Mensal: R$ ${profileData.userBudget.toFixed(2)}
+
+                **Metas Nutricionais Calculadas (Obrigatório seguir):**
+                - Calorias Diárias Alvo: ${targetCalories} kcal
+                - Proteína Alvo: ${macros.proteinGrams} gramas
+                - Carboidrato Alvo: ${macros.carbGrams} gramas
+                - Gordura Alvo: ${macros.fatGrams} gramas
+                
+                O plano deve ser estruturado em Markdown, contendo uma breve análise de 2-3 linhas e uma tabela semanal (Dia 1 ao Dia 7) com sugestões de refeições (Café da Manhã, Almoço, Jantar).
+            `;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                tools: [{ "google_search": {} }], // Usar o Google Search para sugestões de alimentos baratos e atuais.
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                },
+                config: {
+                    temperature: 0.7
+                }
+            };
+
+            // Função de tentativa e repetição com backoff
+            const maxRetries = 3;
+            let responseText = "Erro: Não foi possível gerar a dieta. Tente novamente.";
+            
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(API_URL + API_KEY, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    
+                    const result = await response.json();
+                    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    
+                    if (text) {
+                        responseText = text;
+                        break; // Sai do loop se for bem-sucedido
+                    }
+
+                } catch (error) {
+                    console.error(`Tentativa ${i + 1} falhou:`, error);
+                    if (i < maxRetries - 1) {
+                        await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000)); // Backoff exponencial
+                    }
+                }
+            }
+
+            // 5. Exibe o resultado e salva no Firestore
+            loadingMessage.classList.add('hidden');
+
+            if (responseText.startsWith("Erro")) {
+                resultContent.innerHTML = `<p class="text-red-500 font-semibold">${responseText}</p>`;
+            } else {
+                resultContent.innerHTML = responseText;
+                resultDiv.classList.remove('hidden');
+                
+                // Salva o resultado da dieta no perfil do usuário
+                if (currentUserId) {
+                    await saveUserProfile({ latestDietResult: responseText }, currentUserId);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
