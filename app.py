@@ -24,7 +24,7 @@ db = SQLAlchemy(app)
 CORS(app, resources={r"/api/*": {"origins": [
     "https://app-dietafacil-production.up.railway.app",
     "http://localhost:8000",
-    "http://localhost:3000"
+    "http://localhost:3000"  # ESSENCIAL para o teste
 ]}})
 
 # --- Definição dos Modelos ---
