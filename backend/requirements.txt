@@ -1,7 +1,6 @@
 Flask
-Flask-CORS
 Flask-SQLAlchemy
+Flask-CORS
 PyJWT
 gunicorn
-requests
-python-dotenv
+psycopg2-binary
